@@ -5,6 +5,54 @@ import logging
 import json
 from enum import Enum
 
+#   2 - CALL       (Client-to-server)
+#   3 - CALLRESULT (Server-to-client)
+#   4 - CALLERROR  (Server-to-client)
+
+# Структура сообщения CALL
+# [<MessageTypeId>,"<UniqueId>","<Action>",{<Payload>}]
+# MessageTypeId=2 - идентификатор типа сообщения
+# UniqueId - уникальный идентификатор максимум 36 символов
+# Action - текстовое имя типа сообщения
+# Payload - полезная нагрузка (данные сообщения)
+# Пример сообщения:
+# [
+#   2,
+#   "7a3621e6-2c72-42fc-afce-4c7f2c23248b",
+#   "BootNotification",
+#   {
+#       "chargePointModel":"FMA",
+#       "chargePointVendor":"NSTU"
+#   }
+# ]
+
+# Структура сообщения CALLRESULT
+# [<MessageTypeId>,"<UniqueId>",{<Payload>}]
+# MessageTypeId=3 - идентификатор типа сообщения
+# UniqueId - уникальный идентификатор максимум 36 символов
+# Payload - полезная нагрузка (данные сообщения)
+# Пример сообщения ответа ("BootNotification"):
+# [
+#  3,
+#  "19223201",
+#  {
+#   "status":"Accepted",
+#   "currentTime":"2013-02-01T20:53:32.486Z",
+#   "heartbeatInterval":300}
+# ]
+
+# Структура сообщения CALLERROR
+# [<MessageTypeId>,"<UniqueId>","<ErrorCode>","<ErrorDescribtion>"{<ErrorDetails>}]
+# MessageTypeId=3 - идентификатор типа сообщения
+# UniqueId - уникальный идентификатор максимум 36 символов
+# ErrorCode - код(номер) ошибки
+# ErrorDescribtion - описание ошибки
+# ErrorDetails - (данные сообщения) поле может быть пустым
+# Сообщение отправляется в 2-х случаях:
+#  - Ошибка во время передачи сообщений. 
+#  - Сообщение было получено, но формат был неправильным.
+
+
 class ParseResponseResult(int, Enum):
     JSON_ERROR         = 0
     BAD_CALLRESULT_LEN = 1

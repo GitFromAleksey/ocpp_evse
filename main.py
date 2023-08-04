@@ -5,98 +5,12 @@ import websockets as ws
 
 from charge_point import ChargePoint
 
-#   2 - CALL       (Client-to-server)
-#   3 - CALLRESULT (Server-to-client)
-#   4 - CALLERROR  (Server-to-client)
 
-# Структура сообщения CALL
-# [<MessageTypeId>,"<UniqueId>","<Action>",{<Payload>}]
-# MessageTypeId=2 - идентификатор типа сообщения
-# UniqueId - уникальный идентификатор максимум 36 символов
-# Action - текстовое имя типа сообщения
-# Payload - полезная нагрузка (данные сообщения)
-# Пример сообщения:
-# [
-#   2,
-#   "7a3621e6-2c72-42fc-afce-4c7f2c23248b",
-#   "BootNotification",
-#   {
-#       "chargePointModel":"FMA",
-#       "chargePointVendor":"NSTU"
-#   }
-# ]
-
-# Структура сообщения CALLRESULT
-# [<MessageTypeId>,"<UniqueId>",{<Payload>}]
-# MessageTypeId=3 - идентификатор типа сообщения
-# UniqueId - уникальный идентификатор максимум 36 символов
-# Payload - полезная нагрузка (данные сообщения)
-# Пример сообщения ответа ("BootNotification"):
-# [3,
-#  "19223201",
-#  {
-#   "status":"Accepted",
-#   "currentTime":"2013-02-01T20:53:32.486Z",
-#   "heartbeatInterval":300}
-# ]
-
-# Структура сообщения CALLERROR
-# [<MessageTypeId>,"<UniqueId>","<ErrorCode>","<ErrorDescribtion>"{<ErrorDetails>}]
-# MessageTypeId=3 - идентификатор типа сообщения
-# UniqueId - уникальный идентификатор максимум 36 символов
-# ErrorCode - код(номер) ошибки
-# ErrorDescribtion - описание ошибки
-# ErrorDetails - (данные сообщения) поле может быть пустым
-# Сообщение отправляется в 2-х случаях:
-#  - Ошибка во время передачи сообщений. 
-#  - Сообщение было получено, но формат был неправильным.
-
-CHARGE_POINT_NAME = 'FMA'
-CHARGE_POINT_VENDOR = 'NSTU'
-SCHEMAS_FOLDER = '\schemas\json'
-SERVER_IP = '192.168.1.20'
-SERVER_PORT = '8180'
-SERVER_WS_ADDRESS = 'ws://' + SERVER_IP + ':' + SERVER_PORT + '/steve/websocket/CentralSystemService/FMA'
-#'ws://192.168.1.20:8180/steve/websocket/CentralSystemService/' + CHARGE_POINT_NAME
-SETTINGS_FILE_NAME = 'settings.json'
-
-SETTINGS = {
-            'SERVER_IP' : SERVER_IP, 
-            'SERVER_PORT' : SERVER_PORT, 
-            'CHARGE_POINT_NAME' : CHARGE_POINT_NAME,
-            # 'CHARGE_POINT_VENDOR' : CHARGE_POINT_VENDOR,
-            }
-
-def GetSettings():
-    from pathlib import Path
-    global SETTINGS
-    file_exist = Path(SETTINGS_FILE_NAME)
-    if file_exist.is_file():
-        print(f'exist')
-        file = open(SETTINGS_FILE_NAME, 'r', encoding = "utf-8")
-    else:
-        print(f'not exist')
-        file = open(SETTINGS_FILE_NAME, 'w', encoding = "utf-8")
-        json_settings = json.dumps(SETTINGS, indent = 2)
-        file.write(json_settings)
-        file.close()
-        file = open(SETTINGS_FILE_NAME, 'r', encoding = "utf-8")
-
-    try:
-        load_settings = json.loads(file.read())
-        SETTINGS = load_settings
-    except:
-        file.close()
-        file = open(SETTINGS_FILE_NAME, 'w', encoding = "utf-8")
-        json_settings = json.dumps(SETTINGS, indent = 2)
-        file.write(json_settings)
-
-    file.close()
 
 class Settings:
     CHARGE_POINT_NAME = 'ChargePointName'
-    CHARGE_POINT_VENDOR = 'Vendor'
-    SCHEMAS_FOLDER = '\schemas\json'
+    CHARGE_POINT_VENDOR = 'VendorName'
+    # SCHEMAS_FOLDER = '\schemas\json'
     SERVER_IP = '192.168.1.20'
     SERVER_PORT = '8180'
     SETTINGS_FILE_NAME = 'settings.json'
