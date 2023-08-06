@@ -97,7 +97,7 @@ async def main():
         cp = ChargePoint(cp_settings.GetChargePointName(), socket)
         await asyncio.gather(
             cp.start(),
-            cp.BootNotificationSend()
+            # cp.BootNotificationSend()
         )
 
 

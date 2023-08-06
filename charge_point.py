@@ -122,15 +122,15 @@ class BootNotification(BaseJsonMessage):
     PL_KEY_INTERVAL = 'interval'
     def __init__(self) -> None:
         super().__init__(BootNotification.ACTION)
-        self.chargePointVendor = ''
-        self.chargePointModel = ''
-        self.chargePointSerialNumber = ''
-        self.chargeBoxSerialNumber = ''
-        self.firmwareVersion = ''
-        self.iccid = ''
-        self.imsi = ''
-        self.meterType = ''
-        self.meterSerialNumber = ''
+        self.chargePointVendor = 'vendor'
+        self.chargePointModel = 'model'
+        self.chargePointSerialNumber = 'point serial num'
+        self.chargeBoxSerialNumber = 'box serial num'
+        self.firmwareVersion = 'firm ver'
+        self.iccid = 'iccid'
+        self.imsi = 'imcid'
+        self.meterType = 'meter type'
+        self.meterSerialNumber = 'meter serial num'
 
         self.callback = None
 
@@ -194,7 +194,62 @@ class Heartbeat(BaseJsonMessage):
         if parse_result == ParseResponseResult.CALLRESULT:
             if self.callback:
                 payload = self.msg_payload
-                print(payload.get('currentTime'))
+                # print(payload.get('currentTime'))
+                await self.callback(payload.get('currentTime'))
+
+class StatusNotification(BaseJsonMessage):
+    ACTION = 'StatusNotification'
+
+    PL_INFO              = 'info'
+    PL_TIMESTAMP         = 'timestamp'
+    PL_VENDOR_ID         = 'vendorId'
+    PL_VENDOR_EEROR_CODE = 'vendorErrorCode'
+    PL_KEY_CURRENT_TIME  = 'currentTime'
+    PL_KEY_INTERVAL      = 'interval'
+
+# required
+    PL_CONNECTOR_ID = 'connectorId'
+    PL_EEROR_CODE   = 'errorCode'
+    PL_KEY_STATUS   = 'status'
+
+    def __init__(self) -> None:
+        super().__init__(StatusNotification.ACTION)
+        self.callback = None
+        self.error_code = ''
+        self.connectorId = ''
+        self.status = ''
+
+    async def Start(self, interval: int, connection, callback) -> None:
+        prev_time = time.time()
+        while True:
+            await asyncio.sleep(1)
+            if (time.time() - prev_time) >= interval:
+                prev_time = time.time()
+                await self.SendRequest(connection, callback)
+
+    async def SendRequest(self, connection, callback) -> None:
+        _uuid = str(uuid.uuid4())
+        request = self.MakeRequest(_uuid)
+        print(f'StatusNotification.req: {request}')
+        self.callback = callback
+        await connection.send(request)
+
+    def MakeRequest(self, _uuid: str) -> str:
+        pl = {}
+        pl[StatusNotification.PL_CONNECTOR_ID] = self.connectorId
+        pl[StatusNotification.PL_KEY_STATUS]   = self.status
+        pl[StatusNotification.PL_EEROR_CODE]   = self.error_code
+        pl[StatusNotification.PL_INFO] = 'connector info'
+        return super().MakeRequest(_uuid, pl)
+
+    async def ParseResponse(self, json_data: str) -> None:
+        parse_result = super().ParseResponse(json_data)
+        if parse_result == ParseResponseResult.CALLRESULT:
+            if self.callback:
+                payload = self.msg_payload
+                # print(payload.get('currentTime'))
+                print(f'StatusNotification Response OK')
+                pass
 
 
 class ChargePoint:
@@ -211,10 +266,13 @@ class ChargePoint:
 
     def CreateOcppProtocolObjects(self):
         self.ocpp_objects_list = []
+
         self.boot_notification = BootNotification()
         self.ocpp_objects_list.append(self.boot_notification)
         self.heartbeat = Heartbeat()
         self.ocpp_objects_list.append(self.heartbeat)
+        self.status_notification = StatusNotification()
+        self.ocpp_objects_list.append(self.status_notification)
 
     async def BootNotificationSend(self):
         self.boot_notification.chargePointModel = self.id
@@ -224,14 +282,31 @@ class ChargePoint:
         log = f'status: {reg_status}, date_time: {cur_date_time}, heartbeat_interval: {heartbeat_interval}'
         self.Log(log)
         if reg_status == 'Accepted':
-            asyncio.gather(self.heartbeat.Start(heartbeat_interval, self.connection, self.HeartbeatCallback))
+            # asyncio.gather(self.heartbeat.Start(heartbeat_interval, self.connection, self.HeartbeatCallback))
+            asyncio.gather(self.heartbeat.Start(10, self.connection, self.HeartbeatCallback))
             pass
 
     async def HeartbeatCallback(self, cur_time: str) -> None:
-        print(cur_time)
+        print(f'HeartbeatCallback: {cur_time}')
+        await self.StatusNotificationSend(self.connectors_id)
+        self.connectors_id +=1
+        if self.connectors_id > 3:
+            self.connectors_id = 0
+        # await self.StatusNotificationSend(1)
+
+    async def StatusNotificationSend(self, connectorId: int):
+        self.status_notification.status = 'Available'
+        self.status_notification.connectorId = str(connectorId)
+        self.status_notification.error_code = 'NoError'
+        await self.status_notification.SendRequest(self.connection, self.StatusNotificationCallback)
+    async def StatusNotificationCallback(self) -> None:
+        print(f'StatusNotificationCallback')
 
     async def start(self):
+        self.connectors_id = 0
         connection = self.connection
+        await self.BootNotificationSend()
+        # await self.StatusNotificationSend()
         while True:
             rx_message = await connection.recv()
             self.Log(f'{rx_message}')
