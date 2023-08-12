@@ -215,7 +215,7 @@ class StatusNotificationErrCode(str, Enum):
     OverVoltage          = "OverVoltage"
     WeakSignal           = "WeakSignal"
 
-class StatusNotificationErrCode(str, Enum):
+class StatusNotificationStatus(str, Enum):
     Available     = "Available"
     Preparing     = "Preparing"
     Charging      = "Charging"
@@ -246,7 +246,7 @@ class StatusNotification(BaseJsonMessage):
         self.callback = None
         self.error_code = ''
         self.connectorId = ''
-        self.status = ''
+        self.status = StatusNotificationStatus.Available
 
     async def Start(self, interval: int, connection, callback) -> None:
         prev_time = time.time()
@@ -276,6 +276,5 @@ class StatusNotification(BaseJsonMessage):
         if parse_result == ParseResponseResult.CALLRESULT:
             if self.callback:
                 payload = self.msg_payload
-                # print(payload.get('currentTime'))
-                print(f'StatusNotification Response OK')
+                print(f'StatusNotification Response OK: {self.UniqueId}')
                 pass
