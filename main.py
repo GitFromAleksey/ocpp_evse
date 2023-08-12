@@ -121,5 +121,34 @@ async def main():
 #       "interval":14400
 #   }
 # ]
+
+# [
+#   2,
+#   "ad71ad42-18a2-46cf-a0f4-c9316413bf83",
+#   "ChangeConfiguration",
+#   {
+#       "key":"MeterValueSampleInterval",
+#       "value":"30"
+#   }
+# ]
+# [
+#   2,
+#   "bebc8fac-1ac7-491a-a362-926eade676b8",
+#   "GetConfiguration",
+#   {
+#       "key":[
+#           "MeterValueSampleInterval",
+#           "MeterValuesSampledDataMaxLength",
+#           "MeterValuesSampledData",
+#           "StopTxnSampledData",
+#           "HeartbeatInterval",
+#           "AuthorizationCacheEnabled",
+#           "AuthorizeRemoteTxRequests",
+#           "ConnectionTimeOut",
+#           "GetConfigurationMaxKeys",
+#           "ClockAlignedDataInterval"
+#           ]
+#   }
+# ] 
 if __name__ == '__main__':
     asyncio.run(main())
