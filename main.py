@@ -13,12 +13,14 @@ class Settings:
     # SCHEMAS_FOLDER = '\schemas\json'
     SERVER_IP = '192.168.1.20'
     SERVER_PORT = '8180'
+    SERVER_POSTFIX = '/steve/websocket/CentralSystemService/'
     SETTINGS_FILE_NAME = 'settings.json'
     SETTINGS = {
                 'SERVER_IP' : SERVER_IP, 
                 'SERVER_PORT' : SERVER_PORT, 
+                'SERVER_POSTFIX' : SERVER_POSTFIX,
                 'CHARGE_POINT_NAME' : CHARGE_POINT_NAME,
-                # 'CHARGE_POINT_VENDOR' : CHARGE_POINT_VENDOR,
+
                 }
 
     def __init__(self, path: str = '') -> None:
@@ -70,7 +72,7 @@ class Settings:
         addr += self.settings['SERVER_IP'] 
         addr += ':' 
         addr += self.settings['SERVER_PORT']
-        addr += '/steve/websocket/CentralSystemService/' 
+        addr += self.settings['SERVER_POSTFIX'] # /steve/websocket/CentralSystemService/' 
         addr += self.GetChargePointName()
         return addr
 

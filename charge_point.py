@@ -36,8 +36,8 @@ class ChargePoint:
         log = f'status: {reg_status}, date_time: {cur_date_time}, heartbeat_interval: {heartbeat_interval}'
         self.Log(log)
         if reg_status == 'Accepted':
-            # asyncio.gather(self.heartbeat.Start(heartbeat_interval, self.connection, self.HeartbeatCallback))
-            asyncio.gather(self.heartbeat.Start(10, self.connection, self.HeartbeatCallback))
+            asyncio.gather(self.heartbeat.Start(heartbeat_interval, self.connection, self.HeartbeatCallback))
+            # asyncio.gather(self.heartbeat.Start(10, self.connection, self.HeartbeatCallback))
             pass
 
     async def HeartbeatCallback(self, cur_time: str) -> None:
