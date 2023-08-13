@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 import logging
-from ocpp_protocol import BootNotification, Heartbeat, StatusNotification
+from ocpp_protocol import BaseJsonMessage, BootNotification, Heartbeat, StatusNotification
 
 
 
@@ -19,6 +19,7 @@ class ChargePoint:
         self.CreateOcppProtocolObjects()
 
     def CreateOcppProtocolObjects(self):
+        self.tx_queue = []
         self.ocpp_objects_list = []
 
         self.boot_notification = BootNotification()
@@ -31,28 +32,29 @@ class ChargePoint:
     async def BootNotificationSend(self):
         self.boot_notification.chargePointModel = self.id
         self.boot_notification.chargePointVendor = 'NSTU'
-        await self.boot_notification.SendRequest(self.connection, self.BootNotificationCallback)
+        # await self.boot_notification.SendRequest(self.connection, self.BootNotificationCallback)
+        await self.SendOcppRequest(self.boot_notification, self.BootNotificationCallback)
     async def BootNotificationCallback(self, reg_status: str, cur_date_time: str, heartbeat_interval: int) -> None:
         log = f'status: {reg_status}, date_time: {cur_date_time}, heartbeat_interval: {heartbeat_interval}'
         self.Log(log)
         if reg_status == 'Accepted':
-            asyncio.gather(self.heartbeat.Start(heartbeat_interval, self.connection, self.HeartbeatCallback))
-            # asyncio.gather(self.heartbeat.Start(10, self.connection, self.HeartbeatCallback))
-            pass
+            await self.HeartbeatSendingStart(heartbeat_interval)
 
+    async def HeartbeatSendingStart(self, heartbeat_interval: int) -> None:
+        asyncio.gather(self.heartbeat.Start(heartbeat_interval, self.connection, self.HeartbeatCallback))
     async def HeartbeatCallback(self, cur_time: str) -> None:
         print(f'HeartbeatCallback: {cur_time}')
         await self.StatusNotificationSend(self.connectors_id)
-        self.connectors_id +=1
+        self.connectors_id += 1
         if self.connectors_id > 3:
             self.connectors_id = 0
-        # await self.StatusNotificationSend(1)
 
     async def StatusNotificationSend(self, connectorId: int):
         self.status_notification.status = 'Available'
         self.status_notification.connectorId = str(connectorId)
         self.status_notification.error_code = 'NoError'
-        await self.status_notification.SendRequest(self.connection, self.StatusNotificationCallback)
+        # await self.status_notification.SendRequest(self.connection, self.StatusNotificationCallback)
+        await self.SendOcppRequest(self.status_notification, self.StatusNotificationCallback)
     async def StatusNotificationCallback(self) -> None:
         print(f'StatusNotificationCallback')
 
@@ -66,6 +68,15 @@ class ChargePoint:
             self.Log(f'{rx_message}')
             for ocpp_obj in self.ocpp_objects_list:
                 await ocpp_obj.ParseResponse(rx_message)
+
+    # async def DataExchange(self) -> None:
+    #     if len(self.tx_queue) > 0:
+    #         request = self.tx_queue.pop()
+    #         await request.SendRequest(self.connection, callback)
+    async def SendOcppRequest(self, request: BaseJsonMessage, callback) -> None:
+        # self.tx_queue.append(request)
+        await request.SendRequest(self.connection, callback)
+
 
     def Log(self, message: str) -> None:
         print(message)
