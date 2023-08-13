@@ -96,7 +96,7 @@ async def main():
     # print(f'{Authorize.get("properties").get("idTag")}')
 
     async with ws.connect(cp_settings.GetWsServerAddress(), subprotocols=['ocpp1.6']) as socket:
-        cp = ChargePoint(cp_settings.GetChargePointName(), socket)
+        cp = ChargePoint(cp_settings.GetChargePointName(), 'NSTU', socket)
         await asyncio.gather(
             cp.start(),
             # cp.BootNotificationSend()

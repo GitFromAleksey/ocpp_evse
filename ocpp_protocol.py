@@ -74,6 +74,10 @@ class BaseJsonMessage:
         self.action = action
         self.UniqueId = ''
         self.msg_payload = None
+        self.callbacks = []
+
+    def AddCallback(self, callback) -> None:
+        self.callbacks.append(callback)
 
     async def SendRequest(self, connection, callback) -> None:
         pass
@@ -117,27 +121,24 @@ class BaseJsonMessage:
 class BootNotification(BaseJsonMessage):
     ACTION = 'BootNotification'
 
-    PL_KEY_STATUS = 'status'
+    PL_KEY_STATUS       = 'status'
     PL_KEY_CURRENT_TIME = 'currentTime'
-    PL_KEY_INTERVAL = 'interval'
+    PL_KEY_INTERVAL     = 'interval'
     def __init__(self) -> None:
         super().__init__(BootNotification.ACTION)
-        self.chargePointVendor = 'vendor'
-        self.chargePointModel = 'model'
+        self.chargePointVendor       = 'vendor'
+        self.chargePointModel        = 'model'
         self.chargePointSerialNumber = 'point serial num'
-        self.chargeBoxSerialNumber = 'box serial num'
-        self.firmwareVersion = 'firm ver'
-        self.iccid = 'iccid'
-        self.imsi = 'imcid'
-        self.meterType = 'meter type'
-        self.meterSerialNumber = 'meter serial num'
-
-        self.callback = None
+        self.chargeBoxSerialNumber   = 'box serial num'
+        self.firmwareVersion         = 'firm ver'
+        self.iccid                   = 'iccid'
+        self.imsi                    = 'imcid'
+        self.meterType               = 'meter type'
+        self.meterSerialNumber       = 'meter serial num'
 
     async def SendRequest(self, connection, callback) -> None:
         _uuid = str(uuid.uuid4())
         request = self.MakeRequest(_uuid)
-        self.callback = callback
         await connection.send(request)
 
     def MakeRequest(self, _uuid: str) -> str:
@@ -156,19 +157,18 @@ class BootNotification(BaseJsonMessage):
     async def ParseResponse(self, json_data: str) -> None:
         parse_result = super().ParseResponse(json_data)
         if parse_result == ParseResponseResult.CALLRESULT:
-            if self.callback:
-                payload = self.msg_payload
-                status = payload.get(BootNotification.PL_KEY_STATUS)
-                time = payload.get(BootNotification.PL_KEY_CURRENT_TIME)
-                interval = int(payload.get(BootNotification.PL_KEY_INTERVAL))
-                await self.callback(status, time, interval)
+            payload  = self.msg_payload
+            status   = payload.get(BootNotification.PL_KEY_STATUS)
+            time     = payload.get(BootNotification.PL_KEY_CURRENT_TIME)
+            interval = int(payload.get(BootNotification.PL_KEY_INTERVAL))
+            for callback in self.callbacks:
+                callback(status, time, interval)
 # ------------------------------------------------------------------------------
 class Heartbeat(BaseJsonMessage):
     ACTION = 'Heartbeat'
 
     def __init__(self) -> None:
         super().__init__(Heartbeat.ACTION)
-        self.callback = None
 
     async def Start(self, interval: int, connection, callback) -> None:
         prev_time = time.time()
@@ -182,7 +182,6 @@ class Heartbeat(BaseJsonMessage):
         _uuid = str(uuid.uuid4())
         request = self.MakeRequest(_uuid)
         print(f'Heartbeat.req: {request}')
-        self.callback = callback
         await connection.send(request)
 
     def MakeRequest(self, _uuid: str) -> str:
@@ -192,10 +191,9 @@ class Heartbeat(BaseJsonMessage):
     async def ParseResponse(self, json_data: str) -> None:
         parse_result = super().ParseResponse(json_data)
         if parse_result == ParseResponseResult.CALLRESULT:
-            if self.callback:
-                payload = self.msg_payload
-                # print(payload.get('currentTime'))
-                await self.callback(payload.get('currentTime'))
+            payload = self.msg_payload
+            for callback in self.callbacks:
+                callback(payload.get('currentTime'))
 # ------------------------------------------------------------------------------
 class StatusNotificationErrCode(str, Enum):
     ConnectorLockFailure = "ConnectorLockFailure"
@@ -241,12 +239,11 @@ class StatusNotification(BaseJsonMessage):
     PL_EEROR_CODE   = 'errorCode'
     PL_KEY_STATUS   = 'status'
 
-    def __init__(self) -> None:
+    def __init__(self, connectorId: int) -> None:
         super().__init__(StatusNotification.ACTION)
-        self.callback = None
-        self.error_code = ''
-        self.connectorId = ''
-        self.status = StatusNotificationStatus.Available
+        self.error_code  = ''
+        self.connectorId = connectorId
+        self.status      = StatusNotificationStatus.Available
 
     async def Start(self, interval: int, connection, callback) -> None:
         prev_time = time.time()
@@ -260,12 +257,11 @@ class StatusNotification(BaseJsonMessage):
         _uuid = str(uuid.uuid4())
         request = self.MakeRequest(_uuid)
         print(f'StatusNotification.req: {request}')
-        self.callback = callback
         await connection.send(request)
 
     def MakeRequest(self, _uuid: str) -> str:
         pl = {}
-        pl[StatusNotification.PL_CONNECTOR_ID] = self.connectorId
+        pl[StatusNotification.PL_CONNECTOR_ID] = str(self.connectorId)
         pl[StatusNotification.PL_KEY_STATUS]   = self.status
         pl[StatusNotification.PL_EEROR_CODE]   = self.error_code
         pl[StatusNotification.PL_INFO] = 'connector info'
@@ -274,7 +270,7 @@ class StatusNotification(BaseJsonMessage):
     async def ParseResponse(self, json_data: str) -> None:
         parse_result = super().ParseResponse(json_data)
         if parse_result == ParseResponseResult.CALLRESULT:
-            if self.callback:
-                payload = self.msg_payload
-                print(f'StatusNotification Response OK: {self.UniqueId}')
-                pass
+            payload = self.msg_payload
+            print(f'StatusNotification Response OK: {self.UniqueId}')
+            for callback in self.callbacks:
+                callback()                
